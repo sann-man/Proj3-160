@@ -89,6 +89,7 @@ implementation {
             else if (myMsg->fdest == neighborTable[i].neighborID){
                 pack acK;
                 acK.src = neighborTable[i].neighborID;
+                // acK.seq = neighborTable[i].seq;
                 memcpy(acK.payload, "Acknowleding", 20);
 
 
@@ -139,12 +140,7 @@ implementation {
             }
         }
     }
-    //         else{
-    //             call Queue.enqueue(node);
-
-    //         }
-    //     }
-    // }
+    
 
 
     
