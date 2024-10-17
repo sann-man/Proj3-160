@@ -39,6 +39,8 @@ implementation {
         // }
     }
 
+
+    //get the information from Neighbor Discovery and make the packet to be sent
     command error_t Flooding.start(){
         dbg(FLOODING_CHANNEL, "FLOODING STARTED\n");
         call Neigh.getNeighbor(neighborTable); //I want to get neighbor table to use 
@@ -46,7 +48,7 @@ implementation {
         sendFlood.src = TOS_NODE_ID;
         sendFlood.seq = sequenceNum;
         sendFlood.TTL = 20;
-        sendFlood.type = TOS_NODE_ID;
+        sendFlood.type = 1;
         sendFlood.protocol = PROTOCOL_PING;
          sendFlood.fdest = 10;
         memcpy(sendFlood.payload, "Flooding message", 20);
@@ -54,7 +56,7 @@ implementation {
     }
 
     
-
+        
     command error_t Flooding.send(pack msg, uint16_t dest){ //I want to send from the FLood SRC the 
         uint8_t nid;
         uint8_t i = 0;
@@ -73,6 +75,8 @@ implementation {
 
     
         // pack acK;
+
+        
     event message_t* Receiver.receive(message_t* msg, void* payload, uint8_t len){
         
         uint8_t i;

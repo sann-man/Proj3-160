@@ -129,6 +129,8 @@ implementation{
       call Sender.send(sendPackage, destination);
    }
 
+   
+
    event void CommandHandler.printNeighbors(){}
 
    event void CommandHandler.printRouteTable(){}
