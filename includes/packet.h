@@ -10,6 +10,8 @@
 #include "channels.h"
 #include "ReQRep.h"
 
+#define MAX_TUPLE 5
+
 enum{
 	// had to adjust packet header size becasue I was getting a segmentation fault
 	PACKET_HEADER_LENGTH = 10,
@@ -40,8 +42,24 @@ void logPack(pack *input){
 	input->src, input->dest, input->seq, input->TTL, input->protocol, input->type,input->fdest, input->payload);
 }
 
+typedef nx_struct tuple{
+	nx_uint16_t neighbor;
+	nx_uint8_t cost;
+}tuple;
+
+typedef nx_struct LSA{
+	nx_uint16_t src;
+	nx_uint16_t seq;
+	tuple tupleList[MAX_TUPLE];
+	nx_uint8_t payload[];
+
+
+
+} LSA;
+
 enum{
-	AM_PACK=6
+	AM_PACK=6,
+	AM_LSA=7
 };
 
 #endif

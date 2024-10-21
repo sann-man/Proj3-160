@@ -20,6 +20,7 @@ implementation {
     // ---------- Start ------------- // 
     // Start discovery process 
     bool neighborDiscoveryStarted = FALSE; 
+    uint8_t discoveryCount = 0; //newest addition
     command error_t NeighborDiscovery.start() {
         neighborDiscoveryStarted = TRUE; 
         dbg("NeighborDiscovery", "NeighborDiscovery started\n");
@@ -31,7 +32,7 @@ implementation {
     // ----- Timer fired ---  // 
     event void NeighborDiscoveryTimer.fired() {
         dbg("NeighborDiscovery", "Sending package\n");
-        
+        discoveryCount++;
         // Prepare HELLO message
         sendPackage.src = TOS_NODE_ID;
         sendPackage.dest = AM_BROADCAST_ADDR;
@@ -46,6 +47,11 @@ implementation {
             dbg("NeighborDiscovery", "Request package sent successfully\n");
         } else {
             dbg("NeighborDiscovery", "Failed to send package\n");
+        }
+
+        if(discoveryCount >= 5){
+            dbg("NeighborDiscovery", "Neighbor Discovery Complete\n");
+            signal NeighborDiscovery.done();
         }
     } 
 
@@ -87,11 +93,11 @@ implementation {
         }
     }
 
-    neighbor_t get(neighbor_t* table, uint8_t* countPtr){
+    void get(neighbor_t* table, neighbor_t* source, uint8_t* countPtr){
         uint8_t i;
         for (i = 0; i < *countPtr; i++) { 
-            return table[i];
-            // dbg("NeighborDiscovery", "Transferring Items\n");
+            table[i] = source[i];
+             dbg("NeighborDiscovery", "Transferring Items\n");
         }
 
     }
@@ -119,7 +125,7 @@ implementation {
 
     command void NeighborDiscovery.getNeighbor(neighbor_t* tableFlood){
 
-        get(tableFlood, &count);
+        get(tableFlood, neighborTable, &count);
 
 
     }

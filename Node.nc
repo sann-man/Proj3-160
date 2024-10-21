@@ -29,7 +29,6 @@ module Node{
 
 implementation{
    pack sendPackage;
-   pack floodMsg;
 
    // Prototypes
       void makePack(pack *Package, uint16_t src, uint16_t dest, uint16_t TTL, uint16_t Protocol, uint16_t seq, uint8_t *payload, uint8_t length);
@@ -42,29 +41,17 @@ implementation{
       // neighbor discovery start 
       if (call NeighborDiscovery.start() == SUCCESS) { 
          dbg("NeighborDiscovery", "NeighborDiscovery start command was successful.\n");
-      } else {
+      } 
+      else {
         dbg("NeighborDiscovery", "NeighborDiscovery start command failed.\n");
       }
 
       if (call Flooding.start() == SUCCESS) { 
          dbg("Flooding", "Flooding start command was successful.\n");
-      } else {
+      } 
+      else {
         dbg("Flooding", "Flooding start command failed.\n");
       }
-
-      floodMsg.src = TOS_NODE_ID;
-      floodMsg.dest = 10; // Example destination node
-      floodMsg.TTL = 20;  // Example TTL value
-      floodMsg.protocol = PROTOCOL_PING;  // Example protocol
-      memcpy(floodMsg.payload, "Flooding message", 16);  // Example payload
-
-      // Call Flooding.send() with the message and destination
-      if (call Flooding.send(floodMsg, floodMsg.dest) == SUCCESS) {
-         dbg(FLOODING_CHANNEL, "Flooding started successfully.\n");
-      } else {
-         dbg(FLOODING_CHANNEL, "Failed to start flooding.\n");
-      }
-   
       
    }
 
@@ -78,6 +65,10 @@ implementation{
    }
 
    event void AMControl.stopDone(error_t err){}
+
+   event void NeighborDiscovery.done(){
+      // dbg(GENERAL_CHANNEL, "Neighbor Discovery DONE\n");
+   }
 
    // event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){
    //    dbg(GENERAL_CHANNEL, "Packet Received\n");
@@ -123,13 +114,14 @@ implementation{
       return msg;
    }
 
+   // signal NeighborDiscovery.done();
+   
+
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload){
       dbg(GENERAL_CHANNEL, "PING EVENT \n");
       makePack(&sendPackage, TOS_NODE_ID, destination, 0, 0, 0, payload, PACKET_MAX_PAYLOAD_SIZE);
       call Sender.send(sendPackage, destination);
    }
-
-   
 
    event void CommandHandler.printNeighbors(){}
 
