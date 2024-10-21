@@ -36,6 +36,9 @@ implementation {
 
     components FloodingC; 
     Node.Flooding -> FloodingC; 
+
+    components LinkStateC;
+    Node.LinkState -> LinkStateC;
     
 
 }

@@ -1,7 +1,8 @@
 #include "../../includes/packet.h"
 
 configuration LinkStateC{
-provides interface LinkeState;
+provides interface LinkState;
+uses interface Hashmap<LSA> as Hashmap;
 }
 
 implementation{
@@ -9,15 +10,18 @@ components LinkStateP;
 
 LinkState = LinkStateP.LinkState;
 
-components new HashmapC(uint16_t, 20);
+// components new HashmapC(LSA, 20) as Hashmap;
 
-HashmapP.Hashmap -> HashmapC;
+LinkStateP.Cache = Hashmap;
 
-components NeighborDiscoveryP as Neighbor;
-NeighborDiscoveryP.Neighbor -> Neighbor;
+components NeighborDiscoveryC as Neighbor;
+LinkStateP.Neighbor -> Neighbor;
 
-components FloodingP as Flooder;
-FloodingP.Flooder -> Flooder;
+// components FloodingP as Flooder;
+// LinkStateP.Flooder -> Flooder;
+
+components new AMReceiverC(AM_PACK) as Receiver;
+LinkStateP.Receiver -> Receiver;
 
 
 

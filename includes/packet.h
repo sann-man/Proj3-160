@@ -42,15 +42,15 @@ void logPack(pack *input){
 	input->src, input->dest, input->seq, input->TTL, input->protocol, input->type,input->fdest, input->payload);
 }
 
-typedef nx_struct tuple{
+typedef nx_struct {
 	nx_uint16_t neighbor;
 	nx_uint8_t cost;
-}tuple;
+}tuple_t;
 
 typedef nx_struct LSA{
 	nx_uint16_t src;
 	nx_uint16_t seq;
-	tuple tupleList[MAX_TUPLE];
+	tuple_t tupleList[MAX_TUPLE];
 	nx_uint8_t payload[];
 
 

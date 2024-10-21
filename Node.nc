@@ -25,6 +25,8 @@ module Node{
 
    uses interface NeighborDiscovery; 
    uses interface Flooding; 
+
+   uses interface LinkState;
 }
 
 implementation{
@@ -67,7 +69,8 @@ implementation{
    event void AMControl.stopDone(error_t err){}
 
    event void NeighborDiscovery.done(){
-      // dbg(GENERAL_CHANNEL, "Neighbor Discovery DONE\n");
+      dbg(GENERAL_CHANNEL, "Neighbor Discovery DONE\n");
+      // LinkState.floodLSA();
    }
 
    // event message_t* Receive.receive(message_t* msg, void* payload, uint8_t len){

@@ -4,10 +4,13 @@
 
 module LinkStateP{
 provides interface LinkState;
-use interface Receive as Receiver;
-use interface Hashmap<uint16_t> as Cache;
-use interface NeighborDiscovery as Neighbor;
-use interface Flooding as Flooder;
+
+provides interface SimpleSend as Flooder;
+
+uses interface Receive as Receiver;
+uses interface Hashmap<LSA> as Cache;
+uses interface NeighborDiscovery as Neighbor;
+// uses interface Flooding as Flooder;
 
 }
 implementation{
@@ -19,22 +22,21 @@ implementation{
     uint16_t sequenceNum = 1;
     neighbor_t lsTable[MAX_NEIGHBORS];
     //Maybe have a start function that fills
-
+    LSA lsa;
     
-    event void NeighborDiscovery.done(){ 
-        dbg("routing","NeigborDiscovery Complete")
+    event void Neighbor.done(){ 
+        dbg("routing","NeigborDiscovery Complete");
         // When Neighbor Discovery is done, I want to begin flooding LSA's
         call Neighbor.getNeighbor(lsTable);
-        floodLSA();
+        // floodLSA();
     
     }
 
-    void floodLSA(){
-        dbg("routing", "Flooding LSA")
-        LSA lsa;
+    command void LinkState.floodLSA(){
+        dbg("routing", "Flooding LSA");
         initLSA(&lsa);
 
-        Flooder.send(lsa, AM_BROADCAST_ADDR);
+        // call Flooder.send(lsa, AM_BROADCAST_ADDR);
 
 
     }
@@ -42,20 +44,20 @@ implementation{
 
 
 
-    event meesage_t* Receiver.receive(message_t* msg){
-        LSA* lsa = (LSA*)msg;
+    event message_t* Receiver.receive(message_t* msg, void* payload, uint8_t len){
+        LSA* recLSA = (LSA*)payload;
         //check to see if its in the Cache
 
-        if (Cache.contains(lsa->src)){
+        if (call Cache.contains(recLSA->src)){
 
-            LSA* currLSA = Cache.get(lsa->src);
-            if (lsa->seq <= currLSA->seq){
+            LSA currLSA = call Cache.get(recLSA->src);
+            if (recLSA->seq <= currLSA.seq){
                 return msg;
             }
         }
 
-        Cache.insert(lsa->src, *lsa);
-        
+        call Cache.insert(recLSA->src, *recLSA);
+
         if (receivedCount >= expectedCount){
             createRouting();
         }
@@ -78,19 +80,19 @@ implementation{
         return;
         
      }
-     void initLSA(LSA* lsa ){
+     void initLSA(LSA* inlsa ){
         uint8_t i;
         uint8_t tupleIndex = 0;
         tuple_t tempTuple;
         
 
-        lsa.src = TOS_NODE_ID;
-        lsa.seq = sequenceNum;
+        inlsa->src = TOS_NODE_ID;
+        inlsa->seq = sequenceNum;
         for (i = 0; i < MAX_NEIGHBORS; i++ ){
-            if (neighborTable[i].ID == lsa->src && tupleIndex < MAX_TUPLE){
-                tempTuple.neighbor = neighborTable[i].neighborID;
-                tempTuple.cost = neighborTable[i].linkQuality;
-                lsa.tupleList[tupleIndex] = tempTuple;
+            if (lsTable[i].neighborID == inlsa->src && tupleIndex < MAX_TUPLE){
+                tempTuple.neighbor = lsTable[i].neighborID;
+                tempTuple.cost = lsTable[i].linkQuality;
+                inlsa->tupleList[tupleIndex] = tempTuple;
                 tupleIndex++;
             }
         }
