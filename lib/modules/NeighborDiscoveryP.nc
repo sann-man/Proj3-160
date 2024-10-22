@@ -4,130 +4,159 @@
 
 module NeighborDiscoveryP {
     provides interface NeighborDiscovery;
-    uses interface Timer<TMilli> as NeighborDiscoveryTimer;
     uses interface SimpleSend as Sender;
+    uses interface Timer<TMilli> as NeighborDiscoveryTimer;
+    uses interface Random;
 }
 
 implementation {
-    
-    // Packet of type pack from packet.h
     pack sendPackage;
-
-    // Neighbor table declaration and count of neighbors
     neighbor_t neighborTable[MAX_NEIGHBORS]; 
     uint8_t count = 0;
+    bool neighborDiscoveryStarted = FALSE;
+    uint16_t sequenceNumber = 0;
+    
+    #define MAX_TTL 1
+    #define NEIGHBOR_TIMEOUT 300000 // time that node can be INACTIVE for before being removed
+    #define QUALITY_THRESHOLD 50 // min quality amount for neighbor to be active
+    #define QUALITY_INCREMENT 10
+    #define QUALITY_DECREMENT 5 // used when node not seen
 
-    // ---------- Start ------------- // 
-    // Start discovery process 
-    bool neighborDiscoveryStarted = FALSE; 
-    uint8_t discoveryCount = 0; //newest addition
+    // function prototypes 
+    void checkInactiveNeighbors();
+    void addNeighbor(uint16_t id, uint8_t quality);
+
     command error_t NeighborDiscovery.start() {
+        uint32_t offset;
         neighborDiscoveryStarted = TRUE; 
-        dbg("NeighborDiscovery", "NeighborDiscovery started\n");
+        dbg(NEIGHBOR_CHANNEL, "NeighborDiscovery started\n");
         
-        call NeighborDiscoveryTimer.startPeriodic(50000); 
+        // start the timer with a random offset to avoid synchronization
+        offset = call Random.rand16() % 1000;
+        call NeighborDiscoveryTimer.startPeriodicAt(offset, 50000); 
         return SUCCESS; 
     }
 
-    // ----- Timer fired ---  // 
-    event void NeighborDiscoveryTimer.fired() {
-        dbg("NeighborDiscovery", "Sending package\n");
-        discoveryCount++;
-        // Prepare HELLO message
-        sendPackage.src = TOS_NODE_ID;
-        sendPackage.dest = AM_BROADCAST_ADDR;
-        sendPackage.seq = 0;
-        sendPackage.TTL = 1;
-        sendPackage.type = TYPE_REQUEST; 
-        sendPackage.protocol = PROTOCOL_PING;
-        memcpy(sendPackage.payload, "GOLD", 6);
-
-        // Send the package
-        if (call Sender.send(sendPackage, AM_BROADCAST_ADDR) == SUCCESS) {
-            dbg("NeighborDiscovery", "Request package sent successfully\n");
-        } else {
-            dbg("NeighborDiscovery", "Failed to send package\n");
-        }
-
-        if(discoveryCount >= 5){
-            dbg("NeighborDiscovery", "Neighbor Discovery Complete\n");
-            signal NeighborDiscovery.done();
-        }
-    } 
-
     command void NeighborDiscovery.checkStartStatus() {
         if (neighborDiscoveryStarted) {
-            dbg("NeighborDiscovery", "NeighborDiscovery has been started.\n");  
+            dbg(NEIGHBOR_CHANNEL, "NeighborDiscovery has been started.\n");
         } else {
-            dbg("NeighborDiscovery", "NeighborDiscovery has not been started.\n");
+            dbg(NEIGHBOR_CHANNEL, "NeighborDiscovery has not been started.\n");
         }
     }
 
-    //  ----------- Neighbor table functionality  ------------------- //
-    // Use Node.nc to handle receiving functionality but other functionality will remain here
-    // |-> better for modularity 
-    void addNeighbor(neighbor_t* table, uint8_t* countPtr, uint16_t id, uint8_t quality) {
-        // Check if neighbor already exists
-        uint8_t i; 
-        for (i = 0; i < *countPtr; i++) { 
-            if (table[i].neighborID == id) { 
-                table[i].nodeID = TOS_NODE_ID;
-                table[i].neighborID = id;
-                table[i].linkQuality = quality; 
-                table[i].isActive = ACTIVE; 
-                return; 
-            }
-        }
-
-        // Add new neighbor if table is not yet full
-        if (*countPtr < MAX_NEIGHBORS) {
-            // Add new neighbor at the available slot
-            table[*countPtr].nodeID = TOS_NODE_ID;
-            table[*countPtr].neighborID = id;
-            table[*countPtr].linkQuality = quality;
-            table[*countPtr].isActive = ACTIVE;
-            (*countPtr)++;
-            dbg("NeighborDiscovery", "Neighbor added: ID = 0%d, Quality = %d\n", id, quality ); 
-        } else { 
-            dbg("NeighborDiscovery", "Neighbor table is full\n"); 
+    event void Sender.sendDone(message_t* msg, error_t error) {
+        if (error == SUCCESS) {
+            dbg(NEIGHBOR_CHANNEL, "Neighbor discovery packet sent successfully\n");
+        } else {
+            dbg(NEIGHBOR_CHANNEL, "Neighbor discovery packet send failed\n");
         }
     }
 
-    void get(neighbor_t* table, neighbor_t* source, uint8_t* countPtr){
+    event void NeighborDiscoveryTimer.fired() {
+        dbg(NEIGHBOR_CHANNEL, "Sending discovery packet\n");
+        
+        sendPackage.src = TOS_NODE_ID;
+        sendPackage.dest = AM_BROADCAST_ADDR;
+        sendPackage.seq = sequenceNumber++;
+        sendPackage.TTL = MAX_TTL;
+        sendPackage.protocol = PROTOCOL_PING;
+        memcpy(sendPackage.payload, "DISCOVERY", 10); // payload 
+
+        if (call Sender.send(sendPackage, AM_BROADCAST_ADDR) == SUCCESS) {
+            dbg(NEIGHBOR_CHANNEL, "Discovery packet sent successfully\n");
+        } else {
+            dbg(NEIGHBOR_CHANNEL, "Failed to send discovery packet\n");
+        }
+
+        checkInactiveNeighbors(); // checks neighbors and update
+    }
+
+    // add neighbor / update neighbor 
+    void addNeighbor(uint16_t id, uint8_t quality) {
         uint8_t i;
-        for (i = 0; i < *countPtr; i++) { 
-            table[i] = source[i];
-             dbg("NeighborDiscovery", "Transferring Items\n");
-        }
 
-    }
-
-    // ------- Remove neighbors that are no longer active  -----------//
-    // marks the neighbor as inactive 
-
-    void removeNeighbor(neighbor_t* table, uint8_t* countPtr, uint16_t id){
-        uint8_t i = 0; 
-        for(i = 0; i < *countPtr; i++){ 
-            if(table[i].isActive == INACTIVE){ 
-                table[i].isActive = INACTIVE;  
-                dbg("Neighbor discovery", "Neighbor %d removed from ACTIVE list",id); 
-                return; 
+        for (i = 0; i < count; i++) { 
+            if (neighborTable[i].neighborID == id) { // already a neighbor 
+                neighborTable[i].linkQuality = quality;
+                if (quality >= QUALITY_THRESHOLD) {
+                    neighborTable[i].isActive = ACTIVE;
+                }
+                dbg(NEIGHBOR_CHANNEL, "Updated neighbor: ID = %d, Quality = %d\n", id, quality);
+                return;
             }
         }
+
+        if (count < MAX_NEIGHBORS) { // If there is more space for new neighbors 
+            neighborTable[count].nodeID = TOS_NODE_ID;
+            neighborTable[count].neighborID = id;
+            neighborTable[count].linkQuality = quality;
+            
+            if (quality >= QUALITY_THRESHOLD) { 
+                neighborTable[count].isActive = ACTIVE;
+            } else {
+                neighborTable[count].isActive = INACTIVE;
+            }
+            count++;
+            dbg(NEIGHBOR_CHANNEL, "New neighbor added: ID = %d, Quality = %d\n", id, quality);
+        } else {
+            dbg(NEIGHBOR_CHANNEL, "Neighbor table is full\n");
+        }
+    }
+
+    void checkInactiveNeighbors() {
+        uint8_t i;
+        uint8_t j;
+        uint8_t activeCount = 0;
+        neighbor_t tempTable[MAX_NEIGHBORS]; // temp for active neighbors 
+
+        for (i = 0; i < count; i++) {
+            if (neighborTable[i].linkQuality > 0) {
+                neighborTable[i].linkQuality -= QUALITY_DECREMENT;
+            }
+            
+            if (neighborTable[i].linkQuality < QUALITY_THRESHOLD) {
+                neighborTable[i].isActive = INACTIVE;
+                dbg(NEIGHBOR_CHANNEL, "Neighbor %d marked as inactive\n", neighborTable[i].neighborID);
+            }
+            
+            // Keep neighbors that still have link quality
+            if (neighborTable[i].linkQuality > 0) {
+                tempTable[activeCount] = neighborTable[i];
+                activeCount++;
+            } else {
+                dbg(NEIGHBOR_CHANNEL, "Removing inactive neighbor %d\n", neighborTable[i].neighborID);
+            }
+        }
+
+        // update the neighbor table with only the active neighbors
+        for (j = 0; j < activeCount; j++) { // replace with active neighbors 
+            neighborTable[j] = tempTable[j];
+        }
+
+        count = activeCount;
     }
 
     command void NeighborDiscovery.handleNeighbor(uint16_t id, uint8_t quality) {
-        // call the addNeighbor function 
-        addNeighbor(neighborTable, &count, id, quality); 
-        removeNeighbor(neighborTable, &count, id); 
-        
+        uint8_t i;
+        for (i = 0; i < count; i++) {
+            if (neighborTable[i].neighborID == id) {
+                neighborTable[i].linkQuality += QUALITY_INCREMENT;
+                if (neighborTable[i].linkQuality > 100) {
+                    neighborTable[i].linkQuality = 100;
+                }
+                neighborTable[i].isActive = ACTIVE;
+                dbg(NEIGHBOR_CHANNEL, "Updated neighbor: ID = %d, Quality = %d\n", id, neighborTable[i].linkQuality);
+                return;
+            }
+        }
+        addNeighbor(id, quality); // If not found add new neighbor 
     }
 
-    command void NeighborDiscovery.getNeighbor(neighbor_t* tableFlood){
-
-        get(tableFlood, neighborTable, &count);
-
-
+    command void NeighborDiscovery.getNeighbor(neighbor_t* tableFlood) {
+        uint8_t i;
+        for (i = 0; i < count; i++) {
+            tableFlood[i] = neighborTable[i];
+        }
     }
-
 }

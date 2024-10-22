@@ -10,7 +10,7 @@ provides interface LinkState;
 uses interface Receive as Receiver;
 uses interface Hashmap<LSA> as Cache;
 uses interface NeighborDiscovery as Neighbor;
-// uses interface Flooding as Flooder;
+uses interface Flooding as Flooder;
 
 }
 implementation{
@@ -24,23 +24,25 @@ implementation{
     neighbor_t lsTable[MAX_NEIGHBORS];
     //Maybe have a start function that fills
     LSA lsa;
+    uint16_t payloadSize;
 
     void createRouting();
-    void firstLSA(LSA* inlsa);
-    
+    uint16_t firstLSA(LSA* inlsa);
+
+   //check to see if NeighborDiscovery is Done 
     event void Neighbor.done(){ 
         dbg("routing","NeigborDiscovery Complete");
         // When Neighbor Discovery is done, I want to begin flooding LSA's
         call Neighbor.getNeighbor(lsTable);
-        // floodLSA();
+        // call LinkState.floodLSA();
     
     }
 
     command void LinkState.floodLSA(){
         dbg("routing", "Flooding LSA");
-        firstLSA(&lsa);
+         payloadSize = firstLSA(&lsa);
 
-        // call Flooder.send(lsa, AM_BROADCAST_ADDR);
+         call Flooder.LSAsend(lsa, payloadSize);
 
 
     }
@@ -85,10 +87,13 @@ implementation{
         return;
         
      }
-     void firstLSA(LSA* inlsa ){
+     uint16_t firstLSA(LSA* inlsa ){
         uint8_t i;
         uint8_t tupleIndex = 0;
         tuple_t tempTuple;
+        uint16_t fieldSize;
+        uint16_t tupleSize;
+        uint16_t paylodSize;
         
 
         inlsa->src = TOS_NODE_ID;
@@ -101,10 +106,21 @@ implementation{
                 tupleIndex++;
             }
         }
+
+         fieldSize = sizeof(uint16_t) + sizeof(uint16_t);
+         tupleSize = tupleIndex * sizeof(tuple_t);
+         paylodSize = fieldSize + tupleSize;
         
+        return payloadSize;
 
 
      }
+    //  void lsaSize(LSA sizeLSA){
+    //     uint8_t fieldSize = sizeof(sizeLSA->src) + sizeof(sizeLSA->seq);
+    //     uint8_t tupleSize = tupleIndex * sizeof(tuple_t);
+    //     uint8_t paylodSize = fieldSize + tupleSize;
+
+    //  }
 
 
 

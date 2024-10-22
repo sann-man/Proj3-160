@@ -9,10 +9,13 @@ configuration NeighborDiscoveryC {
 
 implementation {
     components NeighborDiscoveryP;
-    components new TimerMilliC() as NeighborDiscoveryTimer;
     components new SimpleSendC(AM_PACK);
+    components new TimerMilliC() as NeighborDiscoveryTimer;
+    components RandomC;
 
     NeighborDiscovery = NeighborDiscoveryP.NeighborDiscovery;
-    NeighborDiscoveryP.NeighborDiscoveryTimer -> NeighborDiscoveryTimer;
+
     NeighborDiscoveryP.Sender -> SimpleSendC;
+    NeighborDiscoveryP.NeighborDiscoveryTimer -> NeighborDiscoveryTimer;
+    NeighborDiscoveryP.Random -> RandomC;
 }

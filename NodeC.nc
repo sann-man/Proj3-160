@@ -37,6 +37,9 @@ implementation {
     components FloodingC; 
     Node.Flooding -> FloodingC; 
 
+    components new TimerMilliC() as NeighborDiscoveryTimer;
+    Node.NeighborDiscoveryTimer -> NeighborDiscoveryTimer;
+
     components LinkStateC;
     Node.LinkState -> LinkStateC;
     

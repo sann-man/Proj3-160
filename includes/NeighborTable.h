@@ -17,9 +17,9 @@ typedef struct {
 } neighbor_t;
 
 // Function prototypes
-void addNeighbor(neighbor_t* table, uint8_t* count, uint16_t id, uint8_t quality);
-void removeNeighbor(neighbor_t* table, uint8_t* count, uint16_t id);
-void get(neighbor_t* table, uint8_t* count);
-void neighborFlood(uint8_t nodeID);
+// void addNeighbor(neighbor_t* table, uint8_t* count, uint16_t id, uint8_t quality);
+// void removeNeighbor(neighbor_t* table, uint8_t* count, uint16_t id);
+// void get(neighbor_t* table, uint8_t* count);
+// void neighborFlood(uint8_t nodeID);
 
 #endif // NEIGHBOR_TABLE_H

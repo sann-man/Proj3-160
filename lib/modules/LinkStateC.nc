@@ -17,8 +17,8 @@ LinkStateP.Cache -> Hashmap;
 components NeighborDiscoveryC as Neighbor;
 LinkStateP.Neighbor -> Neighbor;
 
-// components FloodingP as Flooder;
-// LinkStateP.Flooder -> Flooder;
+components FloodingP as Flooder;
+LinkStateP.Flooder -> Flooder;
 
 components new AMReceiverC(AM_PACK) as Receiver;
 LinkStateP.Receiver -> Receiver;
