@@ -52,6 +52,7 @@ implementation{
 
     event message_t* Receiver.receive(message_t* msg, void* payload, uint8_t len){
         LSA* recLSA = (LSA*)payload;
+        uint16_t tempPayloadSize;
         //check to see if its in the Cache
 
         if (call Cache.contains(recLSA->src)){
@@ -63,6 +64,18 @@ implementation{
         }
 
         call Cache.insert(recLSA->src, *recLSA);
+
+
+        receivedCount++;
+
+        tempPayloadSize = firstLSA(recLSA);
+
+        if (call Flooder.LSAsend(*recLSA, tempPayloadSize) != SUCCESS){
+            dbg("routing", "Failed to flood\n");
+        }
+        else{
+            dbg("routing","Flooding LSA from node %d w/ seq %d\n", recLSA->src, recLSA->seq);
+        }
 
         if (receivedCount >= expectedCount){
              createRouting();
