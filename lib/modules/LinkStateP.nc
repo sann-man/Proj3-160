@@ -5,7 +5,7 @@
 module LinkStateP{
 provides interface LinkState;
 
-provides interface SimpleSend as Flooder;
+// provides interface SimpleSend as Flooder;
 
 uses interface Receive as Receiver;
 uses interface Hashmap<LSA> as Cache;
@@ -15,6 +15,7 @@ uses interface NeighborDiscovery as Neighbor;
 }
 implementation{
 
+
  
 
    uint8_t  receivedCount = 0;
@@ -23,6 +24,9 @@ implementation{
     neighbor_t lsTable[MAX_NEIGHBORS];
     //Maybe have a start function that fills
     LSA lsa;
+
+    void createRouting();
+    void firstLSA(LSA* inlsa);
     
     event void Neighbor.done(){ 
         dbg("routing","NeigborDiscovery Complete");
@@ -34,7 +38,7 @@ implementation{
 
     command void LinkState.floodLSA(){
         dbg("routing", "Flooding LSA");
-        initLSA(&lsa);
+        firstLSA(&lsa);
 
         // call Flooder.send(lsa, AM_BROADCAST_ADDR);
 
@@ -59,7 +63,8 @@ implementation{
         call Cache.insert(recLSA->src, *recLSA);
 
         if (receivedCount >= expectedCount){
-            createRouting();
+             createRouting();
+            return;
         }
 
 
@@ -80,7 +85,7 @@ implementation{
         return;
         
      }
-     void initLSA(LSA* inlsa ){
+     void firstLSA(LSA* inlsa ){
         uint8_t i;
         uint8_t tupleIndex = 0;
         tuple_t tempTuple;

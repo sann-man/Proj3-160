@@ -19,9 +19,10 @@ typedef struct {
 } routing_t;
 
 //Functions for RotingTable
-void floodLSA();
-void createRouting();
-void initLSA(LSA* lsa);
+// void floodLSA();
+// void createRouting();
+// void createRouting();
+// void firstLSA(LSA* inlsa );
 void buildGraph();
 
 
