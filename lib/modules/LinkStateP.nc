@@ -25,16 +25,22 @@ implementation{
     //Maybe have a start function that fills
     LSA lsa;
     uint16_t payloadSize;
+    routing_t routingTable[MAX_NODES];
+
+    //Routing Table variables
+    uint16_t graph[MAX_NODES][MAX_NODES];
 
     void createRouting();
     uint16_t firstLSA(LSA* inlsa);
+     void dijsktraAlgo(uint16_t startNode);
+     void buildGraph();
 
    //check to see if NeighborDiscovery is Done 
     event void Neighbor.done(){ 
         dbg("routing","NeigborDiscovery Complete");
         // When Neighbor Discovery is done, I want to begin flooding LSA's
         call Neighbor.getNeighbor(lsTable);
-        // call LinkState.floodLSA();
+        call LinkState.floodLSA();
     
     }
 
@@ -93,13 +99,116 @@ implementation{
     
 
      void createRouting(){
+        buildGraph();
+        dijsktraAlgo(TOS_NODE_ID);
         return;
 
      }
      void buildGraph(){
-        return;
+        uint8_t i;
+        uint8_t j;
+        uint8_t nodeIndex;
+        LSA cacheLSA;
+
+        uint16_t neighbor;
+        uint16_t cost;
+
+        for (i =0; i < MAX_NODES; i++){
+            for (j =0; j < MAX_NODES;j++){
+                graph[i][j] = MAX_NUMBER;
+            }
+        }
+
+        for (nodeIndex = 0; nodeIndex < MAX_NODES; nodeIndex++){
+            if (call Cache.contains(nodeIndex)){
+                 cacheLSA = call Cache.get(nodeIndex);
+
+                 for (i = 0; i < MAX_TUPLE && cacheLSA.tupleList[i].neighbor != 0; i++){
+                    neighbor = cacheLSA.tupleList[i].neighbor;
+                     cost = cacheLSA.tupleList[i].cost;
+
+                    graph[cacheLSA.src][neighbor] = cost;
+                 }
+            }
+        }
+
+        dbg("routing", "Adjacency Matrix from Cache\n");
+        for (i = 0; i < MAX_NODES; i++){
+            for (j = 0; j < MAX_NODES; j++){
+                if(graph[i][j] != MAX_NUMBER){
+                    dbg("routing", "graph[%d][%d] = %d\n", i, j, graph[i][j]);
+                }
+            }
+        }
+
+        
+        
         
      }
+
+     void dijsktraAlgo(uint16_t startNode){
+        uint8_t visited[MAX_NODES];
+        uint8_t distance[MAX_NODES];
+        uint16_t i,j, minDistance, nextNode, altCost;
+
+        for (i = 0; i < MAX_NODES; i++){
+            distance[i] = graph[startNode][i];
+            visited[i] = 0; 
+
+            routingTable[i].dest = i;
+            routingTable[i].nexthop = (graph[startNode][i] != MAX_NUMBER) ? i : startNode;
+            routingTable[i].cost = distance[i];
+            routingTable[i].BUhop = MAX_NUMBER;
+            routingTable[i].BUcost = MAX_NUMBER;
+        }
+
+        distance[startNode] = 0;
+        visited[startNode] = 1;
+
+        for (i = 1; i < MAX_NODES; i++){
+            minDistance = MAX_NUMBER;
+            nextNode = startNode;
+
+            for (j = 0; j < MAX_NODES; j++){
+                if (!visited[j] && distance[j] < minDistance){
+                    minDistance = distance[j];
+                    nextNode = j;
+                }
+            }
+
+            visited[nextNode] = 1;
+
+            for (j = 0; j < MAX_NODES; j++){
+                if (!visited[j] && graph[nextNode][j] != MAX_NUMBER){
+                    altCost = minDistance + graph[nextNode][j];
+                
+
+                if (altCost < distance[j]){
+                    routingTable[j].nexthop = nextNode;
+                    routingTable[j].cost = altCost;
+                }
+                else if (altCost > distance[j] && altCost < routingTable[j].BUcost){
+                    routingTable[j].BUhop = nextNode;
+                    routingTable[j].BUcost = altCost;
+                }
+            }
+        } 
+     }
+
+    //  uint8_t start;
+
+        dbg("routing", "Routing table created:\n");
+        for (i = 0; i < MAX_NODES; i++) {
+        if (routingTable[i].cost != INFINITY) {
+            dbg("routing", "Destination: %d, Next Hop: %d, Cost: %d\n", i, routingTable[i].nexthop, routingTable[i].cost);
+            if (routingTable[i].BUcost != INFINITY) {
+                dbg("routing", "  Backup Hop: %d, Backup Cost: %d\n", routingTable[i].BUhop, routingTable[i].BUcost);
+            }
+        }
+    }
+}
+
+     // ------------- LSA STUFF -------
      uint16_t firstLSA(LSA* inlsa ){
         uint8_t i;
         uint8_t tupleIndex = 0;
@@ -128,6 +237,14 @@ implementation{
 
 
      }
+
+        command void LinkState.getTable(routing_t* tableRoute) {
+        uint8_t i;
+        for (i = 0; i < MAX_NODES; i++) {
+            tableRoute[i] = routingTable[i];
+            }
+         }
+
     //  void lsaSize(LSA sizeLSA){
     //     uint8_t fieldSize = sizeof(sizeLSA->src) + sizeof(sizeLSA->seq);
     //     uint8_t tupleSize = tupleIndex * sizeof(tuple_t);

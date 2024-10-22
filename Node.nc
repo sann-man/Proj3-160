@@ -16,6 +16,7 @@ module Node {
    uses interface Flooding;
    uses interface Timer<TMilli> as NeighborDiscoveryTimer;
    uses interface LinkState;
+   uses interface IPmod;
 }
 
 implementation {

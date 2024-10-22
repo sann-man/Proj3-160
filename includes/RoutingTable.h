@@ -23,7 +23,7 @@ typedef struct {
 // void createRouting();
 // void createRouting();
 // void firstLSA(LSA* inlsa );
-void buildGraph();
+// void buildGraph();
 
 
 //Check the table
