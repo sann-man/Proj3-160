@@ -27,14 +27,7 @@ implementation{
     }
 
     void sendSockPacket(socket_store_t* socket){
-        // if (socket->state == SYN_SENT){
-
-
-        // }
-        // else if(socket->state == SYN_RCVD){
-
-        // }
-        // else if (socket->state ==  )
+        
         switch (sock->state){
             case SYN_SENT:
 
@@ -89,6 +82,6 @@ implementation{
     }
 
     command error_t Transport.release(socket_t fd){
-        
+
     }
 }
