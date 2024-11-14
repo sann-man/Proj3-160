@@ -44,7 +44,7 @@ implementation {
     Node.LinkState -> LinkStateC;
 
     components IPmodC;
-    Node.IPmod -> IPmodC;
+    Node.IP -> IPmodC;
     
 
 }

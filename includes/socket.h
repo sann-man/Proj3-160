@@ -9,10 +9,10 @@ enum{
 };
 
 enum socket_state{
-    CLOSED,
-    LISTEN,
+    CLOSED, //Client Side && Server Side 
+    LISTEN, //Client Side 
     ESTABLISHED,
-    SYN_SENT,
+    SYN_SENT, //Client Side 
     SYN_RCVD,
 };
 

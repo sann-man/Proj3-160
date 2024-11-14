@@ -16,7 +16,7 @@ module Node {
    uses interface Flooding;
    uses interface Timer<TMilli> as NeighborDiscoveryTimer;
    uses interface LinkState;
-   uses interface IPmod;
+   uses interface IPmod as IP;
 }
 
 implementation {
@@ -117,6 +117,13 @@ implementation {
          dbg(NEIGHBOR_CHANNEL, "Failed to send msg\n");
       }
    }
+
+     event void IP.packetReceived(pack msg){
+      //Its supposed to ping!! 
+      //Why did I not implement lmao
+        return;
+
+    }
 
    event void CommandHandler.ping(uint16_t destination, uint8_t *payload) {
       dbg(GENERAL_CHANNEL, "PING EVENT \n");

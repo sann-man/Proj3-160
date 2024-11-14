@@ -159,32 +159,33 @@ implementation {
     }
     //----- FLOOD LSA -----
         command error_t Flooding.LSAsend(LSA msg, uint8_t totalPayloadSize) {
-    dbg(FLOODING_CHANNEL, "Node %d: Entering Flooding.LSAsend() for LSA flooding\n", TOS_NODE_ID);
+    dbg("Flooding", "Node %d: Entering Flooding.LSAsend() for LSA flooding\n", TOS_NODE_ID);
 
     if (!busy) {
-        LSA* payload = (LSA*)(call Packet.getPayload(&pkt, totalPayloadSize));
+        pack* payload = (pack*)(call Packet.getPayload(&pkt, sizeof(pack)));
         if (payload == NULL) {
-            dbg(FLOODING_CHANNEL, "Node %d: Failed to get payload\n", TOS_NODE_ID);
+            dbg("Flooding", "Node %d: Failed to get payload\n", TOS_NODE_ID);
             return FAIL;
         }
-        
+        dbg("Flooding", "Node %d: Payload aquired, copying message to payload\n", TOS_NODE_ID);        
         memcpy(payload, &msg, totalPayloadSize); // copy message to payload 
-        // payload->src = TOS_NODE_ID;
-        // payload->dest = dest;
-        // payload->seq = sequence++;
-        // payload->TTL = MAX_TTL;
+        payload->src = TOS_NODE_ID;
+        payload->dest = AM_BROADCAST_ADDR;
+        payload->seq = sequence++;
+        payload->TTL = MAX_TTL;
 
         if (call AMSend.send(AM_BROADCAST_ADDR, &pkt, totalPayloadSize) == SUCCESS) {
             busy = TRUE;
-            dbg(FLOODING_CHANNEL, "Node %d: Flooding initiated, seq %d\n", TOS_NODE_ID, payload->seq);
+            dbg("Flooding", "Node %d: Flooding initiated, seq %d\n", TOS_NODE_ID, payload->seq);
             return SUCCESS;
         } else {
-            dbg(FLOODING_CHANNEL, "Node %d: AMSend.send() failed\n", TOS_NODE_ID);
+            dbg("Flooding", "Node %d: AMSend.send() failed\n", TOS_NODE_ID);
             return FAIL;
         }
     } else {
-        dbg(FLOODING_CHANNEL, "Node %d: Radio busy, cannot send\n", TOS_NODE_ID);
+        dbg("Flooding", "Node %d: Radio busy, cannot send\n", TOS_NODE_ID);
     }
+    dbg("Flooding", "Returning EBUSY\n");
     return EBUSY;
     }
 
