@@ -57,7 +57,7 @@ implementation{
 
 
     }
-    
+    // set up 
     command error_t Transport.connect(socket_t fd, socket_addr_t *addr){
         socket_store_t* socket = &socketStore[fd]
         if (socket->state == CLOSED){
@@ -83,4 +83,12 @@ implementation{
 
     }
 
+    //tear down
+    command error_t Transport.close(socket_t fd){
+
+    }
+
+    command error_t Transport.release(socket_t fd){
+        
+    }
 }
