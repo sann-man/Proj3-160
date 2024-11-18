@@ -15,10 +15,7 @@ uses interface Flooding as Flooder;
 }
 implementation{
 
-
- 
-
-   uint8_t  receivedCount = 0;
+    uint8_t  receivedCount = 0;
     uint8_t  expectedCount = 4;
     uint16_t sequenceNum = 1;
     neighbor_t lsTable[MAX_NEIGHBORS];

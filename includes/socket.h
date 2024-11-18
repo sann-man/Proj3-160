@@ -9,11 +9,11 @@ enum{
 };
 
 enum socket_state{
-    CLOSED, //Client Side && Server Side 
-    LISTEN, //Client Side 
-    ESTABLISHED,
-    SYN_SENT, //Client Side 
-    SYN_RCVD,
+    CLOSED, //Client Side && Server Side  / No active connection
+    LISTEN, //Client Side  / waiting for incoming connection
+    ESTABLISHED, //  connections established
+    SYN_SENT, //Client Side ^
+    SYN_RCVD, // State used during the connection set up 
 };
 
 
